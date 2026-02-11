@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email,
                 options: {
                     shouldCreateUser: true,
+                    // Do not set emailRedirectTo — this ensures no magic link,
+                    // only the 6-digit OTP code is used for verification
                 },
             });
             return { error: error ? new Error(error.message) : null };
