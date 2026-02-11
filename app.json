@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "temp_expo_init",
-    "slug": "temp_expo_init",
+    "name": "contact-instructions",
+    "slug": "contact-instructions",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
