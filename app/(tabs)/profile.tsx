@@ -1,11 +1,14 @@
 import { Avatar, Button, Card, Input, TextArea } from '@/components/ui';
+import { useAuth } from '@/lib/AuthContext';
 import { useContactsStore } from '@/store/contactsStore';
-import { Info, Save } from 'lucide-react-native';
+import { Info, LogOut, Save } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
+    const { user, signOut } = useAuth();
+
     const profile = useContactsStore((state) => state.profile);
     const setGlobalInstructions = useContactsStore((state) => state.setGlobalInstructions);
     const setDisplayName = useContactsStore((state) => state.setDisplayName);
@@ -14,6 +17,13 @@ export default function ProfileScreen() {
     const [displayName, setDisplayNameLocal] = useState(profile.displayName);
     const [hasChanges, setHasChanges] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+
+    useEffect(() => {
+        setInstructions(profile.globalInstructions);
+        setDisplayNameLocal(profile.displayName);
+    }, [profile.globalInstructions, profile.displayName]);
 
     useEffect(() => {
         const changed =
@@ -23,12 +33,26 @@ export default function ProfileScreen() {
         setSaved(false);
     }, [instructions, displayName, profile]);
 
-    const handleSave = () => {
-        setGlobalInstructions(instructions);
-        setDisplayName(displayName);
+    const handleSave = async () => {
+        if (!user) return;
+        setIsSaving(true);
+
+        if (instructions !== profile.globalInstructions) {
+            await setGlobalInstructions(user.id, instructions);
+        }
+        if (displayName !== profile.displayName) {
+            await setDisplayName(user.id, displayName);
+        }
+
+        setIsSaving(false);
         setHasChanges(false);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+    };
+
+    const handleSignOut = async () => {
+        setIsSigningOut(true);
+        await signOut();
     };
 
     return (
@@ -45,6 +69,9 @@ export default function ProfileScreen() {
                     {/* Avatar & Name */}
                     <View className="items-center mb-6">
                         <Avatar name={displayName || 'Me'} size="lg" color="bg-primary" />
+                        {user?.email && (
+                            <Text className="text-muted text-sm mt-2">{user.email}</Text>
+                        )}
                     </View>
 
                     <Input
@@ -86,15 +113,39 @@ Example:
 
                     <Button
                         onPress={handleSave}
-                        disabled={!hasChanges}
+                        disabled={!hasChanges || isSaving}
                     >
                         <View className="flex-row items-center gap-2">
-                            <Save size={18} color="white" />
+                            {isSaving ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Save size={18} color="white" />
+                            )}
                             <Text className="text-white font-semibold">
-                                {saved ? 'Saved!' : 'Save Changes'}
+                                {saved ? 'Saved!' : isSaving ? 'Saving...' : 'Save Changes'}
                             </Text>
                         </View>
                     </Button>
+
+                    {/* Sign Out */}
+                    <View className="mt-6 pt-6 border-t border-border">
+                        <Button
+                            variant="outline"
+                            onPress={handleSignOut}
+                            disabled={isSigningOut}
+                        >
+                            <View className="flex-row items-center gap-2">
+                                {isSigningOut ? (
+                                    <ActivityIndicator size="small" color="#fafafa" />
+                                ) : (
+                                    <LogOut size={18} color="#fafafa" />
+                                )}
+                                <Text className="text-foreground font-semibold">
+                                    {isSigningOut ? 'Signing out...' : 'Sign Out'}
+                                </Text>
+                            </View>
+                        </Button>
+                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>

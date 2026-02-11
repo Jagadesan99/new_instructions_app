@@ -1,5 +1,6 @@
 export interface Contact {
     id: string;
+    user_id?: string;
     name: string;
     relation: 'Family' | 'Friend' | 'Work' | 'Other';
     status: 'pending' | 'accepted';
@@ -13,7 +14,17 @@ export interface UserProfile {
     id: string;
     displayName: string;
     globalInstructions: string;
+    email?: string;
     updatedAt: number;
+}
+
+export interface Invitation {
+    id: string;
+    contact_id: string;
+    user_id: string;
+    token: string;
+    accepted_at?: string;
+    created_at: string;
 }
 
 export type RelationType = Contact['relation'];

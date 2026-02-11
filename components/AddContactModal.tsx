@@ -1,8 +1,9 @@
+import { useAuth } from '@/lib/AuthContext';
 import { useContactsStore } from '@/store/contactsStore';
 import { RELATION_TYPES, RelationType } from '@/types';
 import { X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 import { Button, Input } from './ui';
 
 interface AddContactModalProps {
@@ -11,19 +12,28 @@ interface AddContactModalProps {
 }
 
 export function AddContactModal({ visible, onClose }: AddContactModalProps) {
+    const { user } = useAuth();
     const [name, setName] = useState('');
     const [relation, setRelation] = useState<RelationType>('Friend');
     const [error, setError] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
 
     const addContact = useContactsStore((state) => state.addContact);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!name.trim()) {
             setError('Name is required');
             return;
         }
 
-        addContact(name.trim(), relation);
+        if (!user) {
+            setError('Not authenticated');
+            return;
+        }
+
+        setIsAdding(true);
+        await addContact(user.id, name.trim(), relation);
+        setIsAdding(false);
         setName('');
         setRelation('Friend');
         setError('');
@@ -76,8 +86,8 @@ export function AddContactModal({ visible, onClose }: AddContactModalProps) {
                                         key={type}
                                         onPress={() => setRelation(type)}
                                         className={`px-4 py-2 rounded-xl border ${relation === type
-                                                ? 'bg-primary border-primary'
-                                                : 'bg-transparent border-border'
+                                            ? 'bg-primary border-primary'
+                                            : 'bg-transparent border-border'
                                             }`}
                                     >
                                         <Text
@@ -100,8 +110,12 @@ export function AddContactModal({ visible, onClose }: AddContactModalProps) {
                             </Button>
                         </View>
                         <View className="flex-1">
-                            <Button onPress={handleSubmit}>
-                                Add Contact
+                            <Button onPress={handleSubmit} disabled={isAdding}>
+                                {isAdding ? (
+                                    <ActivityIndicator size="small" color="white" />
+                                ) : (
+                                    'Add Contact'
+                                )}
                             </Button>
                         </View>
                     </View>

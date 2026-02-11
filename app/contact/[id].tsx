@@ -1,24 +1,29 @@
 import { Avatar, Button, Card, TextArea } from '@/components/ui';
+import { useAuth } from '@/lib/AuthContext';
 import { useContactsStore } from '@/store/contactsStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, CheckCircle2, Eye, Save, Send, Trash2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ContactDetailsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { user } = useAuth();
 
     const contact = useContactsStore((state) => state.getContactById(id));
     const profile = useContactsStore((state) => state.profile);
     const updateContact = useContactsStore((state) => state.updateContact);
     const deleteContact = useContactsStore((state) => state.deleteContact);
+    const sendInvite = useContactsStore((state) => state.sendInvite);
     const acceptInvite = useContactsStore((state) => state.acceptInvite);
 
     const [specificInstructions, setSpecificInstructions] = useState(contact?.specificInstructions || '');
     const [hasChanges, setHasChanges] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (contact) {
@@ -36,21 +41,29 @@ export default function ContactDetailsScreen() {
         );
     }
 
-    const handleSave = () => {
-        updateContact(contact.id, { specificInstructions });
+    const handleSave = async () => {
+        setIsSaving(true);
+        await updateContact(contact.id, { specificInstructions });
+        setIsSaving(false);
         setHasChanges(false);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
 
-    const handleDelete = () => {
-        deleteContact(contact.id);
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        await deleteContact(contact.id);
         router.back();
     };
 
-    const handleResendInvite = () => {
-        // Simulate accepting invite for demo
-        acceptInvite(contact.id);
+    const handleSendInvite = async () => {
+        if (user) {
+            await sendInvite(user.id, contact.id);
+        }
+    };
+
+    const handleAcceptDemo = async () => {
+        await acceptInvite(contact.id);
     };
 
     return (
@@ -87,7 +100,7 @@ export default function ContactDetailsScreen() {
                                 <Text className="text-yellow-400 font-medium">Invitation Pending</Text>
                             </View>
                             <Pressable
-                                onPress={handleResendInvite}
+                                onPress={handleAcceptDemo}
                                 className="bg-yellow-500 px-3 py-1.5 rounded-lg active:bg-yellow-600"
                             >
                                 <Text className="text-black font-medium text-sm">Accept (Demo)</Text>
@@ -115,19 +128,21 @@ export default function ContactDetailsScreen() {
                 <View className="px-4 gap-4">
                     <TextArea
                         label="Specific Instructions for this Contact"
-                        placeholder={`Write custom instructions for ${contact.name}...
-
-These will override your global instructions for this contact.`}
+                        placeholder={`Write custom instructions for ${contact.name}...\n\nThese will override your global instructions for this contact.`}
                         value={specificInstructions}
                         onChangeText={setSpecificInstructions}
                         className="min-h-40"
                     />
 
-                    <Button onPress={handleSave} disabled={!hasChanges}>
+                    <Button onPress={handleSave} disabled={!hasChanges || isSaving}>
                         <View className="flex-row items-center gap-2">
-                            <Save size={18} color="white" />
+                            {isSaving ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Save size={18} color="white" />
+                            )}
                             <Text className="text-white font-semibold">
-                                {saved ? 'Saved!' : 'Save Instructions'}
+                                {saved ? 'Saved!' : isSaving ? 'Saving...' : 'Save Instructions'}
                             </Text>
                         </View>
                     </Button>
@@ -142,10 +157,16 @@ These will override your global instructions for this contact.`}
                         </View>
                     </Button>
 
-                    <Button variant="destructive" onPress={handleDelete}>
+                    <Button variant="destructive" onPress={handleDelete} disabled={isDeleting}>
                         <View className="flex-row items-center gap-2">
-                            <Trash2 size={18} color="white" />
-                            <Text className="text-white font-semibold">Delete Contact</Text>
+                            {isDeleting ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Trash2 size={18} color="white" />
+                            )}
+                            <Text className="text-white font-semibold">
+                                {isDeleting ? 'Deleting...' : 'Delete Contact'}
+                            </Text>
                         </View>
                     </Button>
                 </View>

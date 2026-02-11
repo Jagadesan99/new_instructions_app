@@ -3,7 +3,7 @@ import { ContactCard } from '@/components/ContactCard';
 import { useContactsStore } from '@/store/contactsStore';
 import { Plus, Search, Users } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ContactsScreen() {
@@ -12,6 +12,7 @@ export default function ContactsScreen() {
   const [showSearch, setShowSearch] = useState(false);
 
   const contacts = useContactsStore((state) => state.contacts);
+  const isLoading = useContactsStore((state) => state.isLoading);
 
   const filteredContacts = contacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -45,8 +46,13 @@ export default function ContactsScreen() {
         )}
       </View>
 
-      {/* Contact List */}
-      {filteredContacts.length > 0 ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#8b5cf6" />
+          <Text className="text-muted mt-4">Loading contacts...</Text>
+        </View>
+      ) : filteredContacts.length > 0 ? (
         <FlatList
           data={filteredContacts}
           keyExtractor={(item) => item.id}
